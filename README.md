@@ -3,7 +3,7 @@
 
 ## Statistics and Probabilities
 
-### #[Kaggle Home Selling Price Linear Regression](https://htmlpreview.github.io/?https://raw.githubusercontent.com/GavinSouth/demo_portfolio_projects/main/home_prices_linear_regression.html)
+#### [Kaggle Home Selling Price Linear Regression](https://htmlpreview.github.io/?https://raw.githubusercontent.com/GavinSouth/demo_portfolio_projects/main/home_prices_linear_regression.html)
 
 #### [Car Pricing and Shopping Using Linear Regression](https://htmlpreview.github.io/?https://raw.githubusercontent.com/GavinSouth/demo_portfolio_projects/main/car_valuation_linear_regression.html)
 
