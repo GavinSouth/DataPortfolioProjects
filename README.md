@@ -1,6 +1,8 @@
 # Personal Data-Science and Statistical Projects Demos
 > Click the name to be taken to project, for source code refer to repo files.
 
+#### [XGBoost Machine Learning for Customer Income](https://github.com/GavinSouth/demo_portfolio_projects/blob/main/predicting_customer_income_xgboost.pdf)
+
 #### [Kaggle Home Selling Price Linear Regression](https://htmlpreview.github.io/?https://raw.githubusercontent.com/GavinSouth/demo_portfolio_projects/main/home_prices_linear_regression.html)
 
 #### [Car Pricing and Shopping Using Linear Regression](https://htmlpreview.github.io/?https://raw.githubusercontent.com/GavinSouth/demo_portfolio_projects/main/car_valuation_linear_regression.html)
