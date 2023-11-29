@@ -1,5 +1,5 @@
-# Personal Data-Science and Statistical Projects Demos
-> Click the name to be taken to project, for source code refer to repo files.
+# Personal Data Science, Analytics, and Statistical Projects
+> Click the projects name to view an html, for source code refer to repositories.
 
 #### [XGBoost Machine Learning for Customer Income](https://github.com/GavinSouth/demo_portfolio_projects/blob/main/predicting_customer_income_xgboost.pdf)
 
