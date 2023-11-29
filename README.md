@@ -1,4 +1,4 @@
-# Personal Data Science, Analytics, and Statistical Projects
+# Portfolio Data Science, Analytics, and Statistical Projects
 > Click the projects name to view an html, for source code refer to repositories.
 
 #### [XGBoost Machine Learning for Customer Income](https://github.com/GavinSouth/demo_portfolio_projects/blob/main/predicting_customer_income_xgboost.pdf)
