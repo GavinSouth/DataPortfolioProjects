@@ -1,0 +1,221 @@
+---
+title: <center> Diabetes and BMI - Simple Logistic Regression
+output: 
+  html_document:
+    theme: yeti
+    code_folding: hide
+---
+### Author: Gavin South
+
+```{r, include=FALSE} 
+library(mosaic)
+library(ggplot2)
+library(ResourceSelection) 
+library(formattable)
+library(tidyverse)
+library(car)
+library(DT)
+library(pander)
+library(readr)
+PimaIndians <- read.csv("diabetes.csv", header=TRUE)
+PimaIndians <- filter(PimaIndians, BMI > 0)
+Sorted <- PimaIndians[order(PimaIndians$BMI),] 
+SortedH <- PimaIndians[order(-PimaIndians$BMI),] 
+```
+---
+
+# {.tabset .tabset-fade}
+
+## Background
+
+![](basket.png)
+
+### Pima Indians
+Growing up in Phoenix AZ, I rubbed shoulders with a wide variety of native American people.  Although many of my friends and acquaintances were descendants of native American people and came from their respective families on their reservations, many of them lived modern lifestyles that were far off from the traditional ways of life that existed only a few centuries ago. I also remember there being a high rate of obesity, heart failure, diabetes, alcoholism, and other health issues among native American people, because they have been exposed to and living the western American lifestyle. This lifestyle includes poor diet and substance abuse, which is totally new to their genes and people. Because they've jumped into this lifestyle and continue to follow it, the health of their people has been suffering. Outside parties have been trying to teach them better habits to avoid harmful diets and vices, but it's a slow process. This study and the data being used to find trends among the Pima Indians and their diabetes rates gives a greater insight into how their `Body Mass Index` may be an predictor of whether or not they develop diabetes. To understand if there is a trend, future diet recommendations can be made and taught to the rising generation of these good people to ensure they can continue to live the best lives possible. 
+
+## Data
+
+In this data set there is recorded health and body measurements for a large array of Pima Indian people. The two variables, or measurements, that are will be tested as a predictor for a diabetic diagnosis are; **`Body Mass Index`** and **`Outcome`**. (Diabetes, or no Diabetes)
+<br>
+
+Below are three tables two of which show the data sorted by **`Body Mass Index`.**
+
+### {.tabset .tabset-fade}
+
+#### Original
+```{r}
+formattable(PimaIndians, align=c("c", "c", "c", "c", "c", "c"),list(BMI = color_tile("grey90", "grey45"), Outcome = color_tile("lightblue2","palegreen1")))
+```
+
+#### BMI Sorted Low
+```{r}
+formattable(Sorted, align=c("c", "c", "c", "c", "c", "c"),list(BMI = color_tile("grey90", "grey45"), Outcome = color_tile("lightblue2","palegreen1")))
+```
+
+#### BMI Sorted High
+```{r}
+formattable(SortedH, align=c("c", "c", "c", "c", "c", "c"),list(BMI = color_tile("grey90", "grey45"), Outcome = color_tile("lightblue2","palegreen1")))
+```
+
+## Logistic Model
+
+#### Model
+
+To model the probability of having diabetes at different BMIs a logistic regression model would be appropriate. 
+
+$$
+P(Y_i=1|x_i)=   
+\frac{e^{\beta_0 + \beta_1 x_i}}{1 + e^{\beta_0 + \beta_1 x_i}} =
+\pi_i
+$$
+
+Where the observation for $i$:
+
+- $Y^i = 0$ where someone doesn't have diabetes.
+- $Y^i = 1$ where someone does have diabetes. 
+- $x_i$ is the BMI of said individual.
+
+This is to test the odds of someone having diabetes ( 1 ) based off their BMI.
+
+<br>
+
+#### Hypotheses
+
+$$
+H_0: \beta_1 = 0  \\
+H_a: \beta_1 ≠ 0  \\
+\text{level of significance:} \ \ a=0.05
+$$
+
+The test will see if there is a relationship or if there is no relationship between xi
+ and the log of the odds that Yi=1 In other words, xi
+ is not useful in predicting the probability that Yi=1. If β1≠0 then there is information in xi that can be utilized to predict the probability that Yi=1, i.e., the logistic regression is meaningful.
+ 
+<br>
+
+#### Fitting the Model
+
+Here are the coefficients for the logistic regression test:
+```{r}
+LogR <- glm(Outcome ~BMI, data=PimaIndians, family=binomial)
+pander(summary(LogR))
+```
+
+<br>
+
+The intercept for the test is $b_0= -3.99682$ which predicts $\beta_0$ and the slope $b_1= 0.10250$ which predicts $\beta_1$ for the BMI value. 
+
+The p-value from the test of BMI shows a significance result of **4.31e-16**. This result is so significant that there is irrefutable evidence that BMI affects the probability of someone having diabetes. 
+
+<br>
+
+## Visualizing the Model
+
+#### Plotting the Data
+
+The following plot shows the logistic regression between these two variables. There is an obvious trend that reflects the results of the logistic regression test.
+
+```{r, message=FALSE}
+ggplot(PimaIndians, aes(x=BMI, y=Outcome, color= Outcome)) +
+  geom_point( size =2, pch=21, alpha=.5) +
+  geom_smooth(method= "glm", method.args = list(family= "binomial"), se=FALSE, col='chartreuse') +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(color="black", size=15, face="bold"),
+        axis.title.x = element_text(color="black", size=13),
+        axis.title.y = element_text(color="black", size=13)) +
+  ylab("Probablitity of Diabetes") + 
+  xlab("Body Mass Index") +
+  ggtitle("Body Mass Index Predicting Diabetes")
+```
+
+## Diagnosing The Model
+
+#### Goodness of Fit
+
+To verify that a logistic regression test is the best statistical analysis for this problem and data, another test can be employed to check the **goodness of fit.** The best test would be a Hosmer and Lemeshow goodness of fit because there are almost no repeating BMI values in the data set. 
+
+```{r}
+pander(hoslem.test(LogR$y, LogR$fitted.values, g=50))
+```
+
+The **Hosmer and Lemeshow goodness of fit (GOF) test** results in a p-value that keeps the null-hypothesis claiming that a logistic regression is a great test option.  
+
+## Interpretation
+
+#### What this means
+
+As the body mass index value increases by one, the probability of having diabetes goes up by a factor of 1.107937: $$e^{b_1} = e^{0.1025} \approx 1.107937$$ As body mass index goes down by one, the probability of having diabetes goes down by a factor of 0.9025781: $$e^{-0.1025} \approx .9025781$$ This could be interpreted as if the Pima Indian people, or any people for that matter can avoid increasing their BMI in the first place then the likelihood of developing diabetes will go down and stay down.
+
+<br>
+
+#### Predictive Capabilities
+
+The amazing part about a logistic regression is it's predictive capability to take the quantifiable variable in a test, in this case `BMI` and predict the binary outcome of the model; `Diabetic or Not`. Based off this data set if a healthy person that was a Pima Indian wanted to know their likely hood of developing diabetes they would consider this:
+
+<br>
+
+The ***CDC*** says that peoples `BMI`'s fall under these ranges:
+
+BMI Range | Weight Status | Top Range Prediction
+- | - | -
+**Below 18.5** | **Underweight** | %10.90409 
+**18.5 – 24.9** | **Normal or Healthy Weight** | %19.08374 
+**25.0 – 29.9** | **Overweight** | %28.25028 
+**30.0 - 39.9** | **Obese** | %52.57686
+**40.0 - 50** | **Not Good** | %75.54995 
+
+Looking at the rates the trend holds to the factor mentioned above. The test and the data helps us predict what someones likeliness of having diabetes would look like. This test may be a little limited due to it being for Pima Indians, but I think these trends would be somewhat similar across all other bodies of people. 
+
+```{r include=FALSE}
+predict(LogR, newdata = data.frame(BMI= 50), type = "response")
+exp(0.1025) # This is to find the log or factor value for the test
+exp(-0.1025)
+```
+
+## Rework
+
+```
+To whom it may concern, this is my rework document for the Logistic Regression analysis.
+By: Gavin South
+
+>> Section in Rubric <<
+"Quotes" Comments/Suggestions from peer reviews
+-- My follow-through or comments
+//  Brother Saunders
+
+
+//
+Gav,
+
+Excellent work.
+
+In your "Logistic Model" section I would like to see you include the actual \frac{e^{\beta_0 + \beta_1 x_i}}{1 + e^{\beta_0 + \beta_1 x_i}} model statement between P(Yi = 1 | xI) and \pi_i statements. Also, it is \pi_i not \pi^i. ; ) Without this official statement of the model, the hypotheses about this magic "beta_1" (that hasn't been defined anywhere) don't fully make sense, if that makes sense. 
+
+-- Thank you so much for clarifying that I needed to add in this other statement and to change the πi statement. It should look right now and give better understanding to the rest of the analysis. 
+
+In your "Visualizing the Model" section I would like to see you expand the y-axis label on your graph. It needs to include the word "probability" before it is a correct label...
+
+-- I changed the axid to "Probablity of Diabetes"
+
+Everything else looks great!
+
+-- Awesome. 
+
+Brother Saunders
+//
+
+
+This was the only comment I was given in the rubric. All the other sections were 
+3/3's.
+
+
+>> Interpretation <<
+
+"In your interpretation drop-down, the second and third lines begin with a period.
+Also, you could add a prediction function, showing the probability that your model shows about whether someone has diabetes based on an average healthy/underweight/overweight BMI."
+
+-- Okay, I took out those periods that rendered in a weird way and changed the wording around.
+-- Good idea about throwing up some practical predictions for BMI and diabetes. I actually had the code in this section, I just did'nt use it. But I've repented and now included some further insights.
+
+
+```

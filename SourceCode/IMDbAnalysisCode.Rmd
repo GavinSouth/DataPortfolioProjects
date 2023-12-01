@@ -1,0 +1,242 @@
+---
+title: Do IMDb Ratings Reflect Biases?
+output: 
+  html_document:
+    theme: yeti
+    highlight: kate
+    code_folding: hide
+    toc: false
+    toc_float: false
+---
+### Author: Gavin South
+
+```{r, include=FALSE, echo=FALSE}
+library(mosaic)
+library(tidyverse)
+library(pander)
+library(ggplot2)
+library(dplyr)
+library(formattable)
+library(DT)
+library("RColorBrewer")
+mov <- read_csv("Movies.csv")
+names(mov)[7] <- 'RT'
+names(mov)[10] <- 'PrimeVideo'
+names(mov)[11] <- 'DisneyPlus'
+```
+
+---
+![](pics/banner.png)
+
+## Background
+
+### What insights can we gain from our IMDb ratings about our society?
+
+It's fair to say that over last decade, when most people prepare to see a feature film at home or at the local theater, they often consult an online movie rating source to find out if the movie in question is good or not. As they scour through various movie review websites and blogs they generally come across, and enter, the IMDb website. 
+
+[IMDb](https://www.imdb.com), which started in the 1990s, has accumulated and quantified almost every bit of information available on movies and TV shows from the past century. The company and its reviewers have become a reputable source for all movie information and continue to be a standard base of information for anyone to access.
+
+Interestingly, what I personally use IMDb for the most is their ratings on movies and shows. Interestingly, what I personally use IMDb for the most is their movie and show rating scores. I search and read associated opinions and what these reviewers think about these movies and shows so that I know what to expect. I'm not alone in this. 
+
+That being said a question arises when considering these ratings and reviews... how does the largest *'Internet Movie Data Base'* accrue its scores? Well, interestingly it's the average aggregate score of all the reviews submitted by cinephiles of all backgrounds. The score is a range from 0-10 and as you'll see there is a vast variety of ratings. IMDb had [this](https://help.imdb.com/article/imdb/track-movies-tv/ratings-faq/G67Y87TFYYP6TWAV#ratings) to say about the rating system they use. **"** *IMDb ratings are “accurate” in the sense that they are calculated using a consistent, unbiased formula, but we don’t claim that IMDb ratings are “accurate” in an absolute qualitative sense. We offer these ratings as a simplified way to see what other IMDb users all over the world think about titles listed on our site. We believe that these ratings provide a fun and useful indication of the opinion of a movie held by the general public, but ultimately each individual is the arbiter of what is ‘good’ or ‘bad’ when it comes to judging the value of a work of art. Think of ratings more as a guide than as an incontrovertible qualitative verdict. In the final analysis, opinions about the quality of movies and TV shows are subjective, and the IMDb rating is no exception.* **"**
+
+Amazingly, The team at IMDb is not adding any sort of biases or agenda to their ratings, what you see is what the public feels is an appropriate metric for the 'art' that they've watched. The scores not only reflect the populous but also reflect the movie industry and what we are all consuming and prefer. 
+
+## Ratings
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Filter area
+yuppers <- filter(mov)
+yuppers <- yuppers %>% drop_na(Age)
+yuppers <- yuppers %>% 
+  mutate(
+    Age = factor(Age, levels= c("all", "7+", "13+", "16+", "18+"), ordered= TRUE)
+  )
+```
+
+### Our ratings say alot about our tastes and culture
+
+According to the IMDb website and the current entertainment industry, all films are given a rating that reflects the audience that said film is appropriate for. These ratings categories are: `all`, `age 7+`, `13+`, `16+`, and `18+`. In the data base there are close to 17,000 movies ratings that date back to the early 1900's. The ratings and the scores that we've given these movies can actually reflect what types of movies we all think are better... R or G? Pg-13 or PG? 
+
+Using statistical processes we can answer the question like: ***do we as a society find one maturity rating level of movie better over another? Is there bias? ***
+In essence, If there is no bias, then all movie rating groups will have roughly the same average IMDb rating score.
+
+```{r echo= FALSE, message=FALSE, warning=FALSE, fig.width= 9}
+ggplot(yuppers, aes(x=Age, y=IMDb)) +
+  geom_boxplot(lwd=.6, outlier.fill = 'black', outlier.size = 0, outlier.shape = 20, fill = brewer.pal(n=5, name= 'Greys'), color = 'goldenrod1') +
+  geom_jitter(position=position_jitter(0.03), size = .005, color = 'goldenrod1') +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(color="black", size=14),
+axis.title.x = element_text(color="black", size=13),
+axis.title.y = element_text(color="black", size=13)) +
+  xlab("Age Rating") + 
+  ylab("IMDb rating (Out of 10)") +
+  ggtitle("") 
+```
+
+## Statistical Test
+
+### There is a bias, but it's relieving
+
+An ANOVA test (a way to compare groups of values against one another), to see if the average IMDb scores for each age group are different or alike, is the best option for the vast amount of movies ratings in the data. If the results of the test are significant, then we can make some correlations and infer something about the rating level we prefer as a society. (Sample to population)
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+myaov <- aov(IMDb ~ Age, data=yuppers) 
+summary(myaov)
+```
+
+Based off the results from the ANOVA test there is a **very significant** difference in the average scores of age rating groups. The p-value of the test is so low in fact that we can say without any doubt that there is bias in the sample data and infer the same reflects for the rest of the population.
+
+Depending on your own implicit bias, the results bode well for our society. It appears that mature movies are rated the worse out of all other age groups, and movies for children are rated much higher on average! What an important insight, especially considering that children don't go to IMBd's website to submit scores and reviews, these are reviews submitted by adults. 
+
+
+## Deeper Look
+
+### Our standards are strong considering the current entertainment environment
+
+This test is important and its results provide a window into our society standards as a whole. It's becoming important to quantify and test data-sets like this one because our society has no doubt become more expressive and mature in it's taste for media. Frankly, because streaming companies like Netflix, HBO, and Amazon have made mature movies and shows exclusively for the past decade, I thought we would see those mature films stand out as the better rated category. 
+
+The first graph showed the ratings from *all* movies in the data base. This graph shows the most influential and recent years surrounding the release of streaming services. Things have changed, but the all-age appropriate films are still king.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Filter area
+yuppers <- filter(mov, Year >= 2008)
+yuppers <- yuppers %>% drop_na(Age)
+yuppers <- yuppers %>% 
+  mutate(
+    Age = factor(Age, levels= c("all", "7+", "13+", "16+", "18+"), ordered= TRUE)
+  )
+```
+
+```{r echo= FALSE, message=FALSE, warning=FALSE, fig.width= 9}
+ggplot(yuppers, aes(x=Age, y=IMDb)) +
+  geom_boxplot(lwd=.6, outlier.fill = 'black', outlier.size = 0, outlier.shape = 20, fill = brewer.pal(n=5, name= 'Reds'), color = 'chartreuse') +
+  geom_jitter(position=position_jitter(0.03), size = .005, color = 'chartreuse') +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(color="black", size=14),
+axis.title.x = element_text(color="black", size=13),
+axis.title.y = element_text(color="black", size=13)) +
+  xlab("Age Rating") + 
+  ylab("IMDb rating (Out of 10)") +
+  ggtitle("Films Made After 2008 (Netflix and Hulu start streaming)") 
+```
+
+Amazingly again, rated R movies are still rated less on average than all other genres. I feel like someone should share these finding with the creative teams at those named companies to prompt an investment in more clean G-rated movies and shows. They would probably gain popularity!  
+
+But Disney and their streaming service Disney+ have been true to their roots in the movie industry and have always provided quality films for the individuals and families that desire clean media. Look at the proportions of each rating level offered by Disney:
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Filter area
+yuppers <- filter(mov, DisneyPlus == 1)
+yuppers <- yuppers %>% drop_na(Age)
+yuppers <- yuppers %>% 
+  mutate(
+    Age = factor(Age, levels= c("all", "7+", "13+", "16+", "18+"), ordered= TRUE)
+  )
+```
+
+```{r echo= FALSE, message=FALSE, warning=FALSE, fig.width= 9}
+ggplot(yuppers, aes(x=Age, y=IMDb)) +
+  geom_jitter(position=position_jitter(0.1), size = .75, color = 'royalblue', fill = 'white') +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(color="black", size=14),
+axis.title.x = element_text(color="black", size=13),
+axis.title.y = element_text(color="black", size=13)) +
+  xlab("Age Rating") + 
+  ylab("IMDb rating (Out of 10)") +
+  ggtitle("Movies on Disney+") 
+```
+
+<br>
+
+#### Here is the same graph but showing Netflix's offerings:
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Filter area
+yuppers <- filter(mov, Netflix == 1)
+yuppers <- yuppers %>% drop_na(Age)
+yuppers <- yuppers %>% 
+  mutate(
+    Age = factor(Age, levels= c("all", "7+", "13+", "16+", "18+"), ordered= TRUE)
+  )
+```
+
+```{r echo= FALSE, message=FALSE, warning=FALSE, fig.width= 9}
+ggplot(yuppers, aes(x=Age, y=IMDb)) +
+  geom_jitter(position=position_jitter(0.1), size = .75, color = 'red', fill = 'white') +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(color="black", size=14),
+axis.title.x = element_text(color="black", size=13),
+axis.title.y = element_text(color="black", size=13)) +
+  xlab("Age Rating") + 
+  ylab("IMDb rating (Out of 10)") +
+  ggtitle("Movies on Netflix") 
+```
+
+#### And Hulu's:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Filter area
+yuppers <- filter(mov, Hulu == 1)
+yuppers <- yuppers %>% drop_na(Age)
+yuppers <- yuppers %>% 
+  mutate(
+    Age = factor(Age, levels= c("all", "7+", "13+", "16+", "18+"), ordered= TRUE)
+  )
+```
+
+```{r echo= FALSE, message=FALSE, warning=FALSE, fig.width= 9}
+ggplot(yuppers, aes(x=Age, y=IMDb)) +
+  geom_jitter(position=position_jitter(0.1), size = .75, color = 'springgreen', fill = 'white') +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(color="black", size=14),
+axis.title.x = element_text(color="black", size=13),
+axis.title.y = element_text(color="black", size=13)) +
+  xlab("Age Rating") + 
+  ylab("IMDb rating (Out of 10)") +
+  ggtitle("Movies on Hulu") 
+```
+
+#### And Amazon Prime Video's:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Filter area
+yuppers <- filter(mov, PrimeVideo == 1)
+yuppers <- yuppers %>% drop_na(Age)
+yuppers <- yuppers %>% 
+  mutate(
+    Age = factor(Age, levels= c("all", "7+", "13+", "16+", "18+"), ordered= TRUE)
+  )
+```
+
+```{r echo= FALSE, message=FALSE, warning=FALSE, fig.width= 9}
+ggplot(yuppers, aes(x=Age, y=IMDb)) +
+  geom_jitter(position=position_jitter(0.1), size = .2, color = 'darkturquoise', fill = 'white') +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(color="black", size=14),
+axis.title.x = element_text(color="black", size=13),
+axis.title.y = element_text(color="black", size=13)) +
+  xlab("Age Rating") + 
+  ylab("IMDb rating (Out of 10)") +
+  ggtitle("Movies on Prime Video") 
+```
+
+All these streaming services have statistically different numbers of age ratings and associated IMDb Ratings. Running a test called a four-way ANOVA, we can see that there is a massive discrepancy between what each service provides their customers. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# For ANOVA
+yuppers <- filter(mov)
+yuppers <- yuppers %>% drop_na(Age)
+yuppers <- yuppers %>% 
+  mutate(
+    Age = factor(Age, levels= c("all", "7+", "13+", "16+", "18+"), ordered= TRUE)
+  )
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+myaov <- aov(IMDb ~ as.factor(Age) + Netflix + Hulu + PrimeVideo + DisneyPlus, data=yuppers)
+summary(myaov)
+```
+
+
+## Final Thoughts
+
+As I began looking into this data I though people now and days would prefer mature movies and rate them higher than clean traditional films in the IMDb, but I was wrong. The people that submit their reviews on IMDb obviously still enjoy and rate clean movies higher than adult focused films regardless of the influx of mature media. In some ways, I think streaming service companies would do well to take after Disney example and start to offer more all-age material for their audiences. I believe there is lot of money is to be made there. 

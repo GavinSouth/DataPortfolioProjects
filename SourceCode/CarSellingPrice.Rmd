@@ -1,0 +1,324 @@
+---
+title: Regression on Car Price
+output: 
+  html_document:
+    theme: paper
+    code_folding: hide
+---
+
+# Used 2013 Toyota Rav4
+### Exploring Model Diagnosis & Model Transformation
+#### Author: Gavin South
+
+![](toyota.jpg)
+
+```{r message=FALSE, warning=FALSE, echo = FALSE}
+library(mosaic)
+library(pander)
+library(car)
+library(tidyverse)
+library(formattable)
+
+rav <- read.csv(url("https://raw.githubusercontent.com/GavinSouth/DataSets/main/Rav4.csv"))
+my_mileage <- 100232
+```
+
+## Background / Data
+
+#### **Background**
+
+So long story short, I don't own a car. I know this may sound like a pretty poor idea here in Rexburg but I have survived (barely) through the past couple of years without one. In the process I have saved **a lot** of money and headaches by opting out of car ownership. But lately due to needing transportation, I've been looking for a set of wheels that will be reliable, safe, good in the snow, and long lasting. 
+
+I came across a used Toyota Rav4 that's being sold locally here in town and I think it will check all my boxes, It has a decent amount of miles (100,232) and the price is fair. I think this might be the one. But to make sure, this analysis will demonstrate how it's advantageous to use data from similar cars to predict if this car is actually being sold for what it's worth. I will be collecting the total `Miles` and `Price` for forty or so Rav4s to build linear regression model to predict the price of my prospective car. Also, if the regression being made doesn't check out, I will use some transformation methods to make the regression model more accurate and thus predict a more realistic price. 
+
+#### **Data**
+
+This data has been collected from the [cars.com](https://www.cars.com/) website using their filter and sorting software. I found Rav4s of the same trim and title status that had less than 200,000 miles and sorted them from highest to lowest mileage. I then collected the data for three cars for every ten thousand mile intervals (3 * 100,000 range, 3 * 90,000 range, 3 * 80,000 range, etc.) All together, I gathered data on 44 individual cars. I entered the gathered data into an Excel file, exported it as a comma-separated-value file, posted it in my personal GitHub account, and am pulling from this [url](https://raw.githubusercontent.com/GavinSouth/DataSets/main/Rav4.csv) for this analysis. If you want to see the raw data click that link. 
+
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+formattable(head(rav, 15), align=c("c", "c", "c", "c", "c", "c"),list(Miles = color_tile("white", "firebrick2"), Price = color_tile("grey80", "seashell2")))
+```
+
+## Model One
+
+### **Regular Linear Regression**
+
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width= 9}
+mylm <- lm(Price ~ Miles, data= rav)
+
+plot1 <- ggplot(mylm, aes(x = Miles, y = Price)) +  
+  geom_point(color='green2', size=2.25, alpha = .75) +
+  geom_smooth(method= "lm", se=FALSE, size=.4, color = 'darkgreen') +
+  theme_minimal() +
+  theme(legend.position = c(), plot.title = element_text(color="black", size=15, face="bold"),
+  axis.title.x = element_text(color="black", size=13),
+  axis.title.y = element_text(color="black", size=13)) +
+  xlab("Miles on ODO") + 
+  ylab("Price USD") +
+  ggtitle("Prices and Miles") + 
+  labs(subtitle = '2013 Toyota Rav4 AWD') +
+  scale_y_continuous(labels=scales::dollar_format()) +
+  geom_text(label= expression(paste('— ', hat(Y))), 
+    x=175000,
+    y=17750,
+    size = 4.5,
+    color = "darkgreen",
+    fill="darkgreen") +
+  geom_text(label= expression(paste('• Yi')), 
+    x=175000,
+    y=17000,
+    size = 4.5,
+    color = "green2",
+    fill="green2") 
+
+plot1
+
+norm <- mylm$coefficients
+
+```
+#### Estimated Regression Line Equation
+
+$$
+  \underbrace{\hat{Y}_i}_\text{Estimated Price USD} = $18,908.09 - $0.04658096  \ \ \underbrace{X_i}_\text{Miles}
+$$
+
+<br>
+
+#### Diagnostic Plots
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.width= 9}
+par(mfrow = c(1, 3))
+plot(mylm, which= 1:2)
+plot(mylm$residuals)
+```
+
+#### Interpretation
+Looking at the diagnostic plot for this linear regression I can see that there are a some good things and some not-so-good things happening in the data. Firstly, the linearity of this data is curved and is not as linear as I would like to see. This could change with a transformation but this causes some concern. The other thing that's off is the residual distribution qqplot. The residuals are a little right skewed, which isn't the end of the world, but needs to be addressed. On the bright side there are no patterns in the residual/fitted plot or the residual plot. This shows that there are no hidden patterns or weirdness happening in the data. There are some outliers but they aren't that concerning. 
+
+For the model itself there's an impressive linear relationship between the mileage of this type of car and it's price. The p-value for both the slope and y-intercept are very significant. The $R^2$ value is also highly significant showing that there is a strong linear fit for this data. (the data isn't spread out like crazy)
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+pander(summary(mylm))
+```
+
+
+## Box-Cox 
+
+### **Suggesting a Transformation**
+
+Now that the first model has been made and analyzed, the net step in seeing if the model can be improved and the assumptions to be passed is to check if it needs a transformation.
+Using a function called `boxCox()` (named after a favorite statistician) and feeding it my model I will get back a chart with some suggestions posted in it.
+Depending on what the Box-Cox plot recommends, I can transform the y-axis values of an analysis to be more linear. 
+These are some of the common values recommended by the Box-Cox plots.
+
+| Value of $\lambda$ | Transformation to Use  |
+|:------------------:|------------------------|
+| -2                 |  $Y' = Y^{-2} = 1/Y^2$ |
+| -1                 |  $Y' = Y^{-1} = 1/Y$   |
+|  0                 |  $Y' = \log(Y)$        |
+|  0.5               |  $Y' = \sqrt(Y)$       |
+|  1                 |  $Y' = Y$              |
+|  2                 |  $Y' = Y^2$            |
+
+In the plot below there are two graphs with dotted vertical lines representing the range of suggested y-prime values. The one on the right is just a zoomed version of the other. Notice how the range covers 0 -  2.65? I was lucky that the linear regression line made from the data is really strait and there is no pressing need to transform this data. But for this analysis I will demonstrate a `logarithm` transformation in `Model Two`.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.width= 9, fig.height=6}
+par(mfrow = c(1, 2))
+boxCox(mylm, lambda = seq(-3,5,1))
+boxCox(mylm, lambda = seq(-1,3,1))
+```
+
+
+## Model Two
+
+### **Transformed Linear Regression** $Log$
+
+##### Transformed
+
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width= 9}
+mylm.log <- lm(log(Price) ~ Miles, data= rav)
+
+plot2 <- ggplot(rav, aes(y = log(Price), x = Miles,)) +  
+  geom_point(color='maroon1', size=2.25, alpha = .8) +
+  geom_smooth(method= "lm", se=FALSE, size=.4, color = 'red') +
+  theme_minimal() +
+  theme(legend.position = c(), plot.title = element_text(color="black", size=15, face="bold"),
+  axis.title.x = element_text(color="black", size=13),
+  axis.title.y = element_text(color="black", size=13)) +
+  xlab("Miles on ODO") + 
+  ylab("Log of Price USD") +
+  ggtitle("Prices and Miles") + 
+  labs(subtitle = '2013 Toyota Rav4 AWD') +
+  scale_y_continuous(labels=scales::dollar_format()) +
+  geom_text(label= expression(paste('— ', hat(Y))), 
+    x=175000,
+    y=9.8,
+    size = 4.5,
+    color = "red",
+    fill="red") +
+   geom_text(label= expression(paste('• log(Yi)')), 
+    x=175000,
+    y=9.75,
+    size = 4.5,
+    color = "maroon1",
+    fill="maroon1") 
+
+plot2
+
+b <- mylm.log$coefficients
+
+```
+
+##### Original
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.width= 9}
+plot1
+```
+
+##### Superimposed
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.width= 9}
+superi <- plot1 + 
+  stat_function(fun=function(x) exp(b[1] + b[2]*x), linetype =  'dashed') +                                         # Adding the line
+    geom_text(label= expression(paste('- - ', hat(Y),'`')), 
+    x=175000,
+    y=16250,
+    size = 4.5,
+    color = "black",
+    fill="black") 
+
+superi
+```
+
+In this graph the Y-hat-prime is a curved equation line that represents the Yi values on a logarithmic scale. It's curved a little which indicates that it's following the natural change in the Yi values. It looks like it bends down. This makes sense because depreciation doesn't follow a linear line, it's logarithmic in nature. No such thing as an infinitely expensive Rav4 or a free Rav4.
+
+#### Estimated Regression Line Equation
+
+#### {.tabset .tabset-fade}
+
+The slope and intercept of this new equation is much different, but when the `exp()` function is added back to the model, the results reflect the actual intercept and slope of the model. The log just pulled the points together by making the distance between the values smaller using a log scale.
+
+##### Transformed
+
+$$
+  \underbrace{\hat{Y}_i}_\text{Log of Estimated Price USD} = \ _{exp}($9.886542  -  $0.000003365454  \ \ \underbrace{X_i}_\text{Miles})
+$$
+
+##### Original
+
+$$
+  \underbrace{\hat{Y}_i}_\text{Estimated Price USD} = $18,908.09 - $0.04658096  \ \ \underbrace{X_i}_\text{Miles}
+$$
+
+<br>
+
+#### Diagnostic Plots
+
+##### Transformed
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.width= 9}
+par(mfrow = c(1, 3))
+plot(mylm.log, which= 1:2)
+plot(mylm.log$residuals)
+```
+
+##### Original
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.width= 9}
+par(mfrow = c(1, 3))
+plot(mylm, which= 1:2)
+plot(mylm$residuals)
+```
+
+#### Interpretation
+
+Comparing the three diagnostic plots from both tests there are a couple trends. Firstly, the linearity in the fitted values and residuals actually became worse after the `log()` transformation. This makes the results questionable. In the second plot the distribution of the residuals actually became more normal in the `log()` transformation as the outliers were brought in to follow that distribution. Lastly, there are no patterns in either the residual plot or the residual vs fitted plot which indicates that there are no underlying elements or patterns in this data. 
+
+In the actual test we see a powerful linear regression model for both examples. P-values for slope and y-intercept in both models were very significant. The $R^2$ value is also really high in both both models. Comparing both side by side, the results don't change that much from the transformation. 
+
+##### Transformed
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+pander(summary(mylm.log))
+```
+
+##### Original
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+pander(summary(mylm))
+```
+
+
+## Prediction / Conclusion
+
+#### Model Predictions
+
+In this prediction I will use a the miles of hypothetical Rav4 that I want to purchase. The car that I'm looking at purchasing is a 2013 Rav4 XLE with 100,232 mile on it. The owner is asking a cool **12,650** for this car and It seems acceptable. To see if its in the same ballpark as cars similar in mileage I'll use both models to predict the average price of the same type of car with the same miles. 
+
+**Model One (Original)** : $\underbrace{\$14239.19}_\text{Estimated Price USD} = \$18,908.09 - \$0.04658096 \ * \underbrace{100,232}_\text{Miles}$
+
+**Model Two (Log Transformed)** : $\underbrace{\$14033.68 }_\text{Estimated Price USD} = \ _{exp}(\$9.886542  -  \$0.000003365454 \ * \underbrace{100,232}_\text{Miles})$
+
+Now that we have seen both models predictions the difference isn't startling. But there is a difference. Saving two hundred dollars is a big deal! I could buy a ski rack for that much money, or two months insurance. The results seem accurate as well. The model was very linear in the first place so the two weren't going to vary much. In my case, the car is being sold for a great deal and I could ask some further questions to see why the price is set where it's at. 
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.width= 9}
+
+# Transformed Prediction
+mypred <- exp(predict(mylm.log, newdata = data.frame(Miles=  my_mileage )))
+
+# Original Prediction
+normalpred <- predict(mylm, newdata = data.frame(Miles=  my_mileage ))
+
+superi +
+   geom_segment(aes(y = 10000, yend = mypred, x =my_mileage, xend = my_mileage), color='firebrick1', alpha= .75, linetype= "dotdash") +
+  geom_segment(aes(y = mypred, yend = mypred, x = 20000, xend = my_mileage), color ='firebrick1', alpha = .75, linetype= "dotdash") +
+  geom_point(aes(x = my_mileage, y = mypred), color = 'firebrick', pch = 5, size = 5) +
+  geom_text(label= expression(paste('2013 Toyota Rav4 \n Miles: 100,232 \n Predicted Value: $14,033.68 ')), 
+    x=65000,
+    y=11300,
+    size = 4.5,
+    color = "firebrick3",
+    fill="firebrick3") 
+```
+
+#### Prediction Interval
+
+
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.width= 9}
+# Transformed Prediction
+preds <- exp(predict(mylm.log, newdata = data.frame(Miles=  my_mileage ), interval = 'predict'))
+
+# Original Prediction
+normalpred <- predict(mylm, newdata = data.frame(Miles=  my_mileage ), interval = 'predict')
+
+superi +
+  geom_segment(x=my_mileage, xend=my_mileage, y=preds[1,2], yend=preds[1,3], 
+               color="skyblue", size = 1) +
+   geom_segment(x=my_mileage -5000, xend=my_mileage + 5000, y=preds[1,2], yend=preds[1,2], 
+               color="skyblue", size = 1) +
+  geom_segment(x=my_mileage -5000, xend=my_mileage + 5000, y=preds[1,3], yend=preds[1,3], 
+               color="skyblue", size = 1) +
+  geom_text(label= expression(paste('2013 Toyota Rav4 \n Miles: 100,232 \n Predicted Value: $14,033.68 + $2,343.061 OR -$2,812.662')), 
+    x=120000,
+    y=preds[1, 3] + 400,
+    size = 4.5,
+    color = "skyblue",
+    fill="skyblue") 
+
+pander(preds)
+   
+```
+
+Along with a prediction based off the transformed Y-hat line there is also intervals that need to be considered. In this example the price of this car could change by thousands of dollars. This is interesting and deserves attention because the predictive price does vary in these margins. 
+
+
+#### Other Factors
+I think there are a ton of different factors that go into the price of a car. [Kelly Blue Book](https://www.kbb.com/) for example will take into account the color, transmission, condition, and other small things that are not always considered. Even though I don't have this car right now, I can use those sources to get an idea of the cost of the car that I want to get. But, I think other than miles condition and options change the price the most. 
+
+
+#### What I've Learned
+Although this linear regression model made very reliable results that needed little transforming I still saw how doing a small `log` transformation can give different results from just the original regression. The predicted values from the two lines were not that different after all, but if the data was seriously skewed or messed up I could imagine a much larger variance between those two. If this was the case then I would've see the real power of the Box-Cox tool and the y-prime transformation. Using the Box-Cox tool was the most insightful part of this assignment. It really takes the guessing game out of transforming the Y axis values. I hope in the future I'll get to use them in an impactful way. 
+
+'All models are wrong, but some are useful' - George E.P. Box
+
+I hope to make my models and charts **more** useful in my career with these tools. 

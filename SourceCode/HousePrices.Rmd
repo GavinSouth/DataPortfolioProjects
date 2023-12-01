@@ -1,0 +1,731 @@
+---
+title: House Selling Prices
+output: 
+  html_document:
+    theme: paper
+    code_folding: hide
+---
+
+## Author: Gavin South
+
+<br>
+
+![](homeprice.jpg)
+
+```{r message=FALSE, warning=FALSE, echo = FALSE}
+library(pander)
+library(tidyverse)
+
+homes <- read_csv("train.csv")
+```
+
+# {.tabset .tabset-fade}
+
+## Finding a Model
+
+### {.tabset .tabset-fade}
+
+#### Background
+
+##### **What's going on here?**
+
+> Kaggle.com is one website among many that hosts "data challenges" where participants can compete for the "best" model. Many of these competitions award cash prizes of thousands of dollars to the winning team. These are often listed as "machine learning" competitions, but regression models can often be among the top models as well.
+
+> In this project is my own attempt at producing a significant linear regression model that could predict with some accuracy the averaage price of a home if it has a certain number of significant traits. Throughout the project documentation you will find my work, code, and explaination of what I did and how I made a significant model. 
+
+![](kaggle.png)
+
+#### Mutating the data
+
+##### **I made significant variables factors to get started.**
+
+> Click the floating code tab to see how I broke down the most significant variable columns in this data set in order to find a significant linear model. 
+
+```{r echo = TRUE}
+# Useful function to find the not in values. 
+`%!in%` <- negate(`%in%`)
+
+# Look at the pairs plot:
+# X1stFlrSF, X2ndFlrSF, TotBsmtSF, garageArea- Square feet. 
+# Done: overall quality, full bath, garagecars, functional
+# Need: 
+homes1 <- homes %>% 
+  mutate(
+    SalePrice = SalePrice / 1000,
+    TSF = `1stFlrSF` + `2ndFlrSF` + TotalBsmtSF + GarageArea, # 1.
+    Outliers = case_when(                      # 1.5
+      TSF > 8000 ~ 1,
+      TSF < 8000 ~ 0
+    ),
+    `basement?` = case_when(                 # 2.
+        TotalBsmtSF > 0 ~ 1,
+        TotalBsmtSF == 0 ~ 0
+    ),
+    `QLTY1` = case_when(                   # 3.
+        OverallQual == 1 ~ 1,
+        OverallQual %!in% c(1) ~ 0
+    ),
+    `QLTY2` = case_when(       
+        OverallQual == 2 ~ 1,
+        OverallQual %!in% c(2) ~ 0
+    ),
+    `QLTY3` = case_when(      
+        OverallQual == 3 ~ 1,
+        OverallQual %!in% c(3) ~ 0
+    ),
+    `QLTY4` = case_when(       
+        OverallQual == 4 ~ 1,
+        OverallQual %!in% c(4) ~ 0
+    ),
+    `QLTY5` = case_when(     
+        OverallQual == 5 ~ 1,
+        OverallQual %!in% c(5) ~ 0
+    ),
+    `QLTY6` = case_when(       
+        OverallQual == 6 ~ 1,
+        OverallQual %!in% c(6) ~ 0
+    ),
+    `QLTY7` = case_when(       
+        OverallQual == 7 ~ 1,
+        OverallQual %!in% c(7) ~ 0
+    ),
+    `QLTY8` = case_when(       
+        OverallQual == 8 ~ 1,
+        OverallQual %!in% c(8) ~ 0
+    ),
+    `QLTY9` = case_when(       
+        OverallQual == 9 ~ 1,
+        OverallQual %!in% c(9) ~ 0
+    ),
+    `QLTY10` = case_when(       
+        OverallQual == 10 ~ 1,
+        OverallQual %!in% c(10) ~ 0
+    ),
+    `FB0` = case_when(                   # 4.
+        FullBath == 0 ~ 1,
+        FullBath %!in% c(0) ~ 0
+    ),
+    `FB1` = case_when(   
+        FullBath == 1 ~ 1,
+        FullBath %!in% c(1) ~ 0
+    ),
+    `FB2` = case_when(      
+        FullBath == 2 ~ 1,
+        FullBath %!in% c(2) ~ 0
+    ),
+    `FB3` = case_when(      
+        FullBath == 3 ~ 1,
+        FullBath %!in% c(3) ~ 0
+    ),
+    `FB3` = case_when(      
+        FullBath == 3 ~ 1,
+        FullBath %!in% c(3) ~ 0
+    ),  
+    `Cars0` = case_when(                # 5. 
+      GarageCars == 0 ~ 1,
+      GarageCars %!in% c(0) ~ 0
+    ),
+    `Cars1` = case_when(
+      GarageCars == 1 ~ 1,
+      GarageCars %!in% c(1) ~ 0
+    ),
+    `Cars2` = case_when(
+      GarageCars == 2 ~ 1,
+      GarageCars %!in% c(2) ~ 0
+    ),
+    `Cars3` = case_when(
+      GarageCars == 3 ~ 1,
+      GarageCars %!in% c(3) ~ 0
+    ),
+    `Cars4` = case_when(
+      GarageCars == 4 ~ 1,
+      GarageCars %!in% c(4) ~ 0
+    ),       
+    `PavedY` = case_when(                # 6.
+      PavedDrive == 'Y' ~ 1,
+      GarageCars %!in% c('Y') ~ 0
+    ),
+    `PavedN` = case_when(
+      PavedDrive == 'N' ~ 1,
+      GarageCars %!in% c('N') ~ 0
+    ),
+    `PavedP` = case_when(
+      PavedDrive == 'P' ~ 1,
+      GarageCars %!in% c('P') ~ 0
+    ),
+    `Fun1` = case_when(                 # 7.
+      Functional == 'Maj1' ~ 1,
+      Functional %!in% c('Maj1') ~ 0
+    ),
+    `Fun2` = case_when(
+      Functional == 'Maj2' ~ 1,
+      Functional %!in% c('Maj2') ~ 0
+    ),
+    `FunM1` = case_when(
+      Functional == 'Min1' ~ 1,
+      Functional %!in% c('Min1') ~ 0
+    ),
+    `FunM2` = case_when(
+      Functional == 'Min2' ~ 1,
+      Functional %!in% c('Min2') ~ 0 
+    ),
+    `FunMod` = case_when(
+      Functional == 'Mod' ~ 1,
+      Functional %!in% c('Mod') ~ 0
+    ),
+    `FunS` = case_when(
+      Functional == 'Sev' ~ 1,
+      Functional %!in% c('Sev') ~ 0
+    ),
+    `FunT` = case_when(
+      Functional == 'Typ' ~ 1,
+      Functional %!in% c('Typ') ~ 0
+    ),                                 # 8.
+    `GQ1` = case_when(
+      GarageQual == 'Ex' ~ 1,
+      Functional %!in% c('Ex') ~ 0
+    ),
+    `GQ2` = case_when(
+      GarageQual == 'Fa' ~ 1,
+      Functional %!in% c('Fa') ~ 0
+    ),
+    `GQ3` = case_when(
+      GarageQual == 'Gd' ~ 1,
+      Functional %!in% c('Gd') ~ 0
+    ),
+    `GQ4` = case_when(
+      GarageQual == 'Po' ~ 1,
+      Functional %!in% c('Po') ~ 0
+    ),
+    `GQ5` = case_when(
+      GarageQual == 'TA' ~ 1,
+      Functional %!in% c('TA') ~ 0
+    ),
+    `BESTQ` = case_when(                  # 9.
+      OverallQual %in% c(8, 9, 10) ~ 1,
+      OverallQual %!in% c(8, 9 , 10) ~ 0
+    ),
+    `BESTQ2` = case_when(
+      OverallQual %in% c(6, 7) ~ 1,
+      OverallQual %!in% c(6, 7) ~ 0
+    )
+)
+
+
+```
+
+#### Linear Regression Models
+
+##### **Then I started adding the variables to linear models and iterated.**
+
+> In finding the best model to fit this data set, I went through eleven different iterations in search of the best model. Click the floating code block to see the iterations. 
+
+##### **The Ideal Model?**
+
+##### **Make it completely 2-D.**
+
+> The first model is the one I chose to use for my final model. It has an ajusted R-squared value of **0.8605** and a validation R-squared value of **0.8479917**. This makes the model in the upper tier for the grade on this assignment. It is not the best R-squared value I came up with either. Some of those other models are below and their captions explain what they entail. In short, I chose the first model because it is completely two-dimensional and is easy to interpet. The others... well no so easy.
+
+##### **The model I chose to run with.**
+
+```{r echo=TRUE}
+
+# 1st
+mylm <- lm(SalePrice ~ TSF, data = homes1)
+#summary(mylm) # 0.6117
+
+# 2nd
+mylm <- lm(SalePrice ~ TSF + `basement?`, data = homes1)
+#summary(mylm) # 0.6134
+
+# 3rd 
+mylm <- lm(SalePrice ~ TSF + QLTY6 + QLTY7 + QLTY8 + QLTY9 + QLTY10, data = homes1)
+#summary(mylm) # 0.7811
+
+# 4th 
+mylm <- lm(SalePrice ~ TSF + QLTY6 + QLTY7 + QLTY8 + QLTY9 + QLTY10 + FB1 + FB3, data = homes1)
+#summary(mylm) # 0.7875
+
+# 5th
+mylm <- lm(SalePrice ~ TSF + QLTY6 + QLTY7 + QLTY8 + QLTY9 + QLTY10 + FB3  + Cars2 + Cars3, data = homes1)
+#summary(mylm) # 0.7939
+
+# 6th
+mylm <- lm(SalePrice ~ TSF + QLTY6 + QLTY7 + QLTY8 + QLTY9 + QLTY10 + FB3  + PavedY + Cars3 + FunM1 + FunM2 + FunMod + FunT, data = homes1)
+#summary(mylm) # 0.8498
+
+# 7th
+mylm <- lm(SalePrice ~ TSF + I(TSF^3) + QLTY6 + QLTY7 + QLTY8 + QLTY9 + QLTY10 + FB3  + PavedY + FunM1 + FunM2 + FunMod + FunT, data = homes1)
+#summary(mylm) # 0.8597
+
+#-------------------------------------------------------------------------------------------------------------
+
+# 8th ~ Without Outlires
+homes2 <- homes1 # For the outlier models.
+homes1 <- homes1[-c(524, 1299), ]
+mylm <- lm(SalePrice ~ TSF + I(TSF^3) + QLTY6 + QLTY7 + QLTY8 + QLTY9 + QLTY10 + FB3  + PavedY + FunM1 + FunM2 + FunMod + FunT + GQ5, data = homes1)
+pander(summary(mylm), caption = 'Best Model: Outliers Removed ~ 2-D') # .8605
+
+
+# 3 8.5 ~ .87? Crazy Interactions
+o.mylm <- lm(SalePrice ~ TSF + I(TSF^3) + QLTY10 + QLTY8 + QLTY7 + QLTY6:I(TSF^3) + QLTY7:I(TSF^3) + QLTY8:I(TSF^3) + QLTY9:I(TSF^3) + QLTY10:I(TSF^3) + FB3  + PavedY + FunM1 + FunM2 + FunMod + FunT + GQ5, data = homes1)
+pander(summary(o.mylm), caption = 'Best Model: With Crazy Confusion Interactions') # .8729
+
+
+# 9th ~ With Outliers
+o.mylm <- lm(SalePrice ~ I(TSF^2) + I(TSF^2):Outliers + QLTY6 + QLTY7 + QLTY8 + QLTY9 + QLTY10 + FB3 + FunM1 + FunM2 + FunMod + FunT + PavedY, data = homes2)
+pander(summary(o.mylm), caption = 'Model Using Outliers: ~ 2-D') # .8585
+
+
+# 10th ~ Outlires + 3D
+o.mylm <- lm(SalePrice ~ I(TSF^2) + I(YearBuilt^2) + I(TSF^2):Outliers + QLTY6 + QLTY7 + QLTY8 + QLTY9 + QLTY10 + FB3 + FunM1 + FunM2 + FunMod + FunT, data = homes2)
+pander(summary(o.mylm), caption = 'Model Using Outliers: YearBuilt added ~ 3-D')  # .867
+
+```
+
+##### **Diagnostic Plots**
+
+Using the diagnostic plots: residuals vs fitted, Cook's distance, and the residuals vs leverage, there is a better understanding of whats going on in the data. It seems like there are some odd homes that are affecting the linear model in the leverage plot because they are so far away form the majority of the data. But the leverage created by it is not so bad that the model is poor. To note as well, there are a few different homes that have really lardge Cook distances. But then again, they wont change the model too much. 
+
+```{r}
+
+
+par(mfrow=c(1,3))
+
+plot(mylm, which=c(1,4,5))
+
+```
+
+##### Validation 
+
+> Click the floating code block to get an idea of how I verified an adjusted validation R-squared of 0.8479917.
+
+```{r}
+
+# Model Validation
+set.seed(121)
+num_rows <- 750 #1460 total
+keep <- sample(1:nrow(homes1), num_rows)
+
+train <- homes1[keep, ]
+test <- homes1[-keep, ]
+
+v.lm <- lm(SalePrice ~ TSF + I(TSF^3) + QLTY6 + QLTY7 + QLTY8 + 
+    QLTY9 + QLTY10 + FB3 + PavedY + FunM1 + FunM2 + FunMod + 
+    FunT, data=train)
+
+yht <- (predict(v.lm, newdata = test))
+ybar <- mean(test$SalePrice)
+SSTO <- sum((test$SalePrice - ybar)^2 )
+SSE <- sum((test$SalePrice - yht)^2 )
+rst <- 1 - SSE/SSTO
+n <- length(test$SalePrice) 
+pt <- length(coef(v.lm))
+rsta <- 1 - (n-1)/(n-pt)*SSE/SSTO
+# pander(rsta)
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+# Pair Plot Explorer
+sub <- homes1 %>% select(SalePrice, TSF, YearBuilt, QLTY1, QLTY2, QLTY3, QLTY4, QLTY5, QLTY6, QLTY7, QLTY8, QLTY9, QLTY10, FullBath, OverallCond, GarageCars)
+pairs(sub, panel = panel.smooth)
+
+
+# Look at the residual spread
+par(mfcol = c(1, 3))
+plot(mylm, which= 1:2)
+
+plot(mylm$residuals, main = 'Residual vs Order')
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+# How many lines?
+with(homes1, interaction(QLTY6,QLTY7, QLTY8, QLTY9, QLTY10, FB3, PavedY, FunM1, FunM2, FunMod, FunT, GQ5))
+
+# The interaction terms where ther can only be one thing at once. 
+with(homes1, levels(droplevels(interaction(QLTY6,QLTY7, QLTY8, QLTY9, QLTY10, FB3, PavedY, FunM1, FunM2, FunMod, FunT, GQ5))))
+
+# Graphing and Validating 
+# What values contribute the most to the price?
+View(sort(round(coef(mylm), 5))) # Coefficients in this case are the increase in dollars up the the sale price. 
+```
+
+
+## Interpretation
+
+### What variables add the most to the cost of a home?
+
+> The values in the table below are true or false variables in the model I used. When each of these are set to a **1** then the number associated with the variable (dollars in $1,000.00) is added to average price of a home. For example when a home has an `overall quality` of 10 then its price on average will go up $155,000, and if the home has a `garage quality` of 5, (the best) the its average sale price will go up by $8,330. Each of these variables were significant and added predictive capability to this model. 
+
+##### **Variables or home traits and how much they add to the average base price (Thousands):**
+
+```{r}
+pander(sort(round(coef(mylm), 5)))
+```
+
+<br>
+
+##### **The Significant Variables:**
+
+### {.tabset .tabset-fade}
+
+#### Overall Quality
+
+##### **Significance of Overall Quality**
+
+> The variable overall quality proved to be the best indicator of a home increasing in value other than actual total square footage. There are 10 different quality levels, but t=only level 6-10 were significant. This variable changing the average price of a home is actually really interpretable in that a home can only have one level at a time, so in this model there are five increases in price depending on what quality rating a home is given. The graph below does a good job at demonstrating that the quality of home increases the value of home. Each level is color coded.
+
+##### **Base Line and Max Line**
+
+> One more thing to note: The lowest grey dashed line is the base line or the line that describes the average cost of a home without any of the significat values of this home being included in it. At the top of the graph, the dashed line shows the max average home price if all the switches are turned on. This will make much more sense as we delve into the other variables included in the model.
+
+```{r, fig.width=10, fig.height=6}
+# Plot and Interpret
+
+palette(c('purple', 'dodgerblue3', 'springgreen3', 'goldenrod', 'firebrick1'))
+        
+plot(SalePrice ~ TSF, data = homes1, pch = 16, cex = .5,  
+     main = "Quality of Home: Level 6 - 10",
+     xlab = "Total Square Feet",
+     ylab = "Sale Price (Thousands)")
+b = coef(mylm)
+# OVERALL QUALITY
+QLTY6 = 0
+QLTY7 = 0 
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE, lwd = .5, lty = 'dashed', col = 'grey25')
+QLTY6 = 1
+QLTY7 = 0
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE,
+        lwd = 1, col = palette()[1])
+  points(SalePrice ~ TSF, data=filter(homes1, QLTY6 == 1), pch=16, cex = .5, col=palette()[1])
+QLTY6 = 0
+QLTY7 = 1
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE,
+        lwd = 1.5, col = palette()[2])
+  points(SalePrice ~ TSF, data=filter(homes1, QLTY7 == 1), pch=16, cex = .5, col=palette()[2])
+QLTY6 = 0
+QLTY7 = 0
+QLTY8 = 1
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE, 
+        lwd = 2, col = palette()[3])
+  points(SalePrice ~ TSF, data=filter(homes1, QLTY8 == 1), pch=16, cex = .5, col=palette()[3])
+QLTY6 = 0
+QLTY7 = 0 
+QLTY8 = 0
+QLTY9 = 1
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE, lwd = 2.5, col = palette()[4])
+  points(SalePrice ~ TSF, data=filter(homes1, QLTY9 == 1), pch=16, cex = .5, col=palette()[4])
+QLTY6 = 0
+QLTY7 = 0
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 1
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE, lwd = 3, col = palette()[5])
+  points(SalePrice ~ TSF, data=filter(homes1, QLTY10 == 1), pch=16, cex = .5, col=palette()[5])
+QLTY6 = 0
+QLTY7 = 0
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 1
+FB3 = 1
+PavedY = 1
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 1
+GQ5 = 1
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE, lwd = .5, col = 'grey25', lty = 'dashed')
+  legend("topleft", legend = c("$155k ~ Overall Quality 10", "$131k ~  Overall Quality 9", "$70.1k  Overall Quality 8",  "$41.5k ~  Overall Quality 7", "$17.03k  Overall Quality 6"), 
+       col = c('firebrick1', 'goldenrod', 'springgreen3', 'dodgerblue3', 'purple'),
+       lwd = 1)
+
+```
+
+<br>
+
+<br>
+
+#### Home Functionality
+
+##### **Functionality? What's that**
+
+> The variable functionality is described as a homes level of defects. The less the better with the level of typical being a good predictor of increasing home price. The other great thing about this value is that a home can only contain one of them at a time. So, if home has a typical functionality level and a overall quality of six then those two increases in price are actually compounded together and help the average price of a home inch higher to the max average value it could acheive. 
+
+##### **Different Levels of Functionality**
+
+> In the graph below there are four differnt levels being added to the base home price line. Typical, Moderate, Minor Deductions 1, and Minor Deductions 2. Its apparent that many homes fall into the typical functional classification, but thats okay becasue the interpretation is still very significant. When a home had typical defects then its average sale price goes up by **$36,000** which is very significant. 
+  
+```{r, fig.width=10, fig.height=6}
+palette(c('firebrick1', 'goldenrod', 'springgreen3', 'dodgerblue', 'purple'))
+
+# House Functionality
+plot(SalePrice ~ TSF, data = homes1, pch = 16, cex = .5,
+     main = "Functional Levels: Home functionality",
+     xlab = "Total Square Feet",
+     ylab = "Sale Price (Thousands)")
+QLTY6 = 0
+QLTY7 = 0 
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0  # Minor Deductions 1
+FunM2 = 0  # Minor Deductions 2
+FunMod = 0 # Moderate Deductions
+FunT = 0   # Typical Functionality
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE, lwd = .5, lty = 'dashed', col = 'grey25')
+QLTY6 = 0
+QLTY7 = 0 
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 1
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE,
+        col = palette()[3], lwd = 2)
+  points(SalePrice ~ TSF, data=filter(homes1, FunM1 == 1), pch=16, cex = .5, col=palette()[3])
+QLTY6 = 0
+QLTY7 = 0
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 1
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE,
+        col = 'black', lwd = 2, lty = 'dashed')
+  points(SalePrice ~ TSF, data=filter(homes1, FunM2 == 1), pch=16, cex = .5, col='black')
+QLTY6 = 0
+QLTY7 = 0 
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 1
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE,
+        col = palette()[4], lwd = 1)
+  points(SalePrice ~ TSF, data=filter(homes1, FunMod == 1), pch=16, cex = .5, col=palette()[4])
+QLTY6 = 0
+QLTY7 = 0
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 1
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE,
+        col = palette()[1], lwd = 3)
+  points(SalePrice ~ TSF, data=filter(homes1, FunT == 1), pch=16, cex = .5, col=palette()[1])
+QLTY6 = 0
+QLTY7 = 0
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 1
+FB3 = 1
+PavedY = 1
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 1
+GQ5 = 1
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE, lwd = .5, col = 'grey25', lty = 'dashed')
+    legend("topleft", legend = c("$36k ~ Typical Defects", "$28.5k ~ Minor Defects 2", "$28.25k Minor Defects",  "$20k ~ Moderate Defects"), 
+       col = c('firebrick1', 'black', 'springgreen', 'dodgerblue'),
+       lty = c('solid', 'dashed', 'solid', 'solid'),
+       lwd = 1)
+  
+```
+
+#### Miscellaneous Significant Variables
+
+##### **Randomness or usefulness...**
+
+> In such a large data set, there are certaily going to be some variables that do not add any interpretation or significance to a model as the one that is being interpreted here. But sometimes there are some small but significant flakes of gold found that add a significant enough amount of money to a homes price, especially when compounded together. 
+
+##### **What can be used.**
+
+> In the graph below there are three more variables and their average increase in price being graphed. Apparently if a home has three full baths then its average price will go up by **$19,860**. If a home has a paved drive then its average price will go up by **$13,090**. If a home has a typical or average garage quality then the average price will also go up by **$8,442**. Each may seem less significant from the overall quality for example, but when added together there is a healthy amunt of money there, around **+$50,000** if it has all these traits. 
+
+```{r, fig.width=10, fig.height=6}
+  
+  
+# Misc
+plot(SalePrice ~ TSF, data = homes1, pch = 16, cex = .5, 
+     main = "Miscellaneous Significant Variables",
+     xlab = "Total Square Feet",
+     ylab = "Sale Price (Thousands)")
+QLTY6 = 0
+QLTY7 = 0 
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE, lwd = .5, lty = 'dashed', col = 'grey25')
+QLTY6 = 0
+QLTY7 = 0 
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 1    # Three Full Baths
+PavedY = 0 # Paved Driveway
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0   # Garage Quality Typical/Average
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE,
+        col = palette()[1])
+QLTY6 = 0
+QLTY7 = 0
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 1
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 0
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE,
+        col = palette()[2])
+QLTY6 = 0
+QLTY7 = 0 
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 0
+FB3 = 0
+PavedY = 0
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 0
+GQ5 = 1
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE,
+        col = palette()[3])
+QLTY6 = 0
+QLTY7 = 0
+QLTY8 = 0
+QLTY9 = 0
+QLTY10 = 1
+FB3 = 1
+PavedY = 1
+FunM1 = 0
+FunM2 = 0
+FunMod = 0
+FunT = 1
+GQ5 = 1
+  curve(b[1] + b[2]*x + b[3]*x^3 + b[4]*QLTY6 + b[5]*QLTY7 + b[6]*QLTY8 + b[7]*QLTY9 + b[8]*QLTY10 + 
+        b[9]*FB3 + b[10]*PavedY + b[11]*FunM1 + b[12]*FunM2 + b[13]*FunMod + b[14]*FunT + b[15]*GQ5, add=TRUE, lwd = .5, col = 'grey25', lty = 'dashed')
+legend("topleft", legend = c("$19k ~ Three Full Baths", "$13k ~ Paved Driveway", "$8.5k ~ Typical Garage Quality"), 
+       col = c('firebrick1', 'goldenrod', 'springgreen'),
+       lwd = 1)
+
+```
+
+## Wrapping up.
+
+> Again even though this model is simple it does good enough of a job guessing the average price of a home that has these certain variables associated with it. That being said if a home has none of these variables then chances are the average price is closer to that base line that there is no reason to assume it worth any more than it is there. The model also shows that if a home has the best overall quality, the best function, and all the other significant swithches. it can have an increase of **$238,445** from its base price. This is a great predictor and shows that top dashed grey in all the plots seen before. Again this will not predict everything, but for the interest of this project, and for making a complex problem more understandable, this model does a wonderful job. 
+
+
