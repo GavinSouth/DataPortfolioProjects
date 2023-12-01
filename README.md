@@ -7,6 +7,6 @@
 
 #### [Car Pricing and Shopping Linear Regression](https://htmlpreview.github.io/?https://raw.githubusercontent.com/GavinSouth/demo_portfolio_projects/main/car_valuation_linear_regression.html)
 
-#### [IMDb Movie Rating ANOVA and Analysis](https://htmlpreview.github.io/?https://raw.githubusercontent.com/GavinSouth/demo_portfolio_projects/main/IMDbAnalysis.html)
+#### [IMDb Movie Rating ANOVA and Analysis](https://htmlpreview.github.io/?https://raw.githubusercontent.com/GavinSouth/demo_portfolio_projects/main/IMDbAnalysi.html)
 
 #### [Predicting Diabetes Logistic Regression](https://htmlpreview.github.io/?https://raw.githubusercontent.com/GavinSouth/demo_portfolio_projects/main/diabetes_logistic_regression.html)
